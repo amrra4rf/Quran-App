@@ -1,0 +1,1232 @@
+<!DOCTYPE html>
+<html lang="ar" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0a1628">
+<title>Al-Quran & Azan</title>
+<link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Scheherazade+New:wght@400;700&family=Lateef:wght@300;400;500;600;700&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --navy: #0a1628;
+  --navy2: #0f2040;
+  --navy3: #162a50;
+  --gold: #c9a84c;
+  --gold2: #e8c97a;
+  --gold3: #f5e0a0;
+  --cream: #fdf6e3;
+  --green: #1a7a4a;
+  --green2: #22a362;
+  --text: #e8dfc8;
+  --text2: #b8a888;
+  --radius: 16px;
+  --shadow: 0 4px 24px rgba(0,0,0,0.4);
+}
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html, body { height:100%; overflow:hidden; background:var(--navy); font-family:'Poppins',sans-serif; color:var(--text); }
+#app { height:100vh; display:flex; flex-direction:column; overflow:hidden; }
+
+/* ── SPLASH ── */
+#splash {
+  position:fixed; inset:0; background:var(--navy); z-index:999;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:20px; transition:opacity 0.8s;
+}
+#splash .mosque-art { font-size:80px; animation:float 3s ease-in-out infinite; }
+#splash h1 { font-family:'Amiri',serif; font-size:36px; color:var(--gold); text-align:center; }
+#splash p { font-size:13px; color:var(--text2); }
+#splash .dots span { display:inline-block; width:8px; height:8px; background:var(--gold); border-radius:50%; margin:0 3px; animation:dot 1.4s ease-in-out infinite; }
+#splash .dots span:nth-child(2){ animation-delay:.2s; }
+#splash .dots span:nth-child(3){ animation-delay:.4s; }
+@keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-12px)} }
+@keyframes dot { 0%,80%,100%{transform:scale(0.7);opacity:.4} 40%{transform:scale(1);opacity:1} }
+#splash.hidden { opacity:0; pointer-events:none; }
+
+/* ── HEADER ── */
+#header {
+  background:linear-gradient(135deg, var(--navy2), var(--navy3));
+  padding:16px 16px 0; border-bottom:1px solid rgba(201,168,76,0.2);
+  flex-shrink:0;
+}
+.header-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+.app-title { font-family:'Amiri',serif; font-size:22px; color:var(--gold); }
+.header-time { text-align:right; }
+.header-time .time-big { font-size:20px; font-weight:600; color:var(--gold2); }
+.header-time .date-small { font-size:11px; color:var(--text2); }
+
+/* ── PRAYER STRIP ── */
+#prayer-strip {
+  background:var(--navy2);
+  padding:0 12px 12px;
+  flex-shrink:0;
+}
+.prayer-strip-inner {
+  display:flex; gap:8px; overflow-x:auto; padding-bottom:4px;
+  scrollbar-width:none;
+}
+.prayer-strip-inner::-webkit-scrollbar { display:none; }
+.prayer-card {
+  flex-shrink:0; background:var(--navy3); border:1px solid rgba(201,168,76,0.15);
+  border-radius:12px; padding:10px 14px; text-align:center; min-width:70px; cursor:pointer;
+  transition:all .2s;
+}
+.prayer-card.active { background:var(--gold); border-color:var(--gold); }
+.prayer-card.active .prayer-name, .prayer-card.active .prayer-time { color:var(--navy)!important; }
+.prayer-card.next { border-color:var(--gold); box-shadow:0 0 12px rgba(201,168,76,0.3); }
+.prayer-name { font-size:11px; font-weight:500; color:var(--text2); margin-bottom:3px; }
+.prayer-time { font-size:14px; font-weight:600; color:var(--text); }
+.countdown-bar { background:rgba(201,168,76,0.1); border-radius:0 0 8px 8px; padding:6px 12px; text-align:center; }
+.countdown-text { font-size:12px; color:var(--gold); }
+
+/* ── TABS ── */
+#tabs { display:flex; background:var(--navy2); border-bottom:1px solid rgba(201,168,76,0.1); flex-shrink:0; }
+.tab-btn { flex:1; padding:12px 4px; background:none; border:none; color:var(--text2); font-size:11px; font-family:'Poppins',sans-serif; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:3px; transition:all .2s; border-bottom:2px solid transparent; }
+.tab-btn .tab-icon { font-size:18px; }
+.tab-btn.active { color:var(--gold); border-bottom-color:var(--gold); }
+
+/* ── CONTENT ── */
+#content { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+.page { display:none; }
+.page.active { display:block; }
+
+/* ── HOME PAGE ── */
+#home-page { padding:16px; }
+.next-prayer-hero {
+  background:linear-gradient(135deg, rgba(201,168,76,0.15), rgba(201,168,76,0.05));
+  border:1px solid rgba(201,168,76,0.3); border-radius:var(--radius);
+  padding:20px; text-align:center; margin-bottom:16px; position:relative; overflow:hidden;
+}
+.next-prayer-hero::before { content:''; position:absolute; inset:0; background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 60'%3E%3Cpath d='M10 60 Q20 20 30 25 Q40 30 50 10 Q60 -5 70 20 Q80 40 90 60' fill='none' stroke='rgba(201,168,76,0.08)' stroke-width='2'/%3E%3C/svg%3E") center/cover; pointer-events:none; }
+.next-prayer-hero .label { font-size:12px; color:var(--text2); margin-bottom:4px; }
+.next-prayer-hero .prayer-big { font-family:'Amiri',serif; font-size:32px; color:var(--gold); }
+.next-prayer-hero .time-big { font-size:40px; font-weight:600; color:var(--text); margin:4px 0; }
+.next-prayer-hero .countdown { font-size:14px; color:var(--gold2); }
+
+.section-title { font-size:13px; font-weight:600; color:var(--text2); text-transform:uppercase; letter-spacing:1px; margin:16px 0 10px; }
+.quick-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px; }
+.quick-card { background:var(--navy2); border:1px solid rgba(201,168,76,0.12); border-radius:var(--radius); padding:16px; cursor:pointer; transition:all .2s; display:flex; flex-direction:column; gap:6px; }
+.quick-card:active { transform:scale(.97); }
+.quick-card .qc-icon { font-size:28px; }
+.quick-card .qc-title { font-size:13px; font-weight:500; color:var(--text); }
+.quick-card .qc-sub { font-size:11px; color:var(--text2); }
+
+.hadith-card { background:var(--navy2); border:1px solid rgba(201,168,76,0.15); border-radius:var(--radius); padding:16px; margin-bottom:16px; }
+.hadith-card .hadith-ar { font-family:'Scheherazade New',serif; font-size:18px; color:var(--gold2); line-height:1.8; direction:rtl; text-align:right; margin-bottom:8px; }
+.hadith-card .hadith-en { font-size:12px; color:var(--text2); line-height:1.6; }
+.hadith-card .hadith-src { font-size:11px; color:var(--gold); margin-top:8px; }
+
+/* ── QURAN PAGE ── */
+#quran-page { }
+.quran-search { padding:12px; background:var(--navy2); position:sticky; top:0; z-index:10; }
+.search-box { display:flex; align-items:center; background:var(--navy3); border:1px solid rgba(201,168,76,0.2); border-radius:10px; padding:8px 12px; gap:8px; }
+.search-box input { flex:1; background:none; border:none; outline:none; color:var(--text); font-family:'Poppins',sans-serif; font-size:14px; }
+.search-box input::placeholder { color:var(--text2); }
+.search-icon { color:var(--text2); font-size:16px; }
+
+.surah-list { padding:8px 12px; }
+.surah-item { display:flex; align-items:center; gap:12px; padding:14px 12px; border-radius:12px; cursor:pointer; border-bottom:1px solid rgba(255,255,255,0.04); transition:all .2s; }
+.surah-item:active { background:rgba(201,168,76,0.1); }
+.surah-num { width:36px; height:36px; background:rgba(201,168,76,0.1); border:1px solid rgba(201,168,76,0.2); border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600; color:var(--gold); flex-shrink:0; }
+.surah-info { flex:1; }
+.surah-name-ar { font-family:'Scheherazade New',serif; font-size:18px; color:var(--text); direction:rtl; }
+.surah-name-en { font-size:12px; color:var(--text2); }
+.surah-meta { font-size:11px; color:var(--text2); text-align:right; }
+.surah-meta span { display:block; }
+
+/* ── SURAH READER ── */
+#reader-page { display:none; }
+#reader-page.active { display:flex; flex-direction:column; height:100%; }
+.reader-header { background:var(--navy2); padding:12px 16px; display:flex; align-items:center; gap:10px; border-bottom:1px solid rgba(201,168,76,0.15); flex-shrink:0; }
+.reader-back { background:none; border:none; color:var(--gold); font-size:22px; cursor:pointer; }
+.reader-title { flex:1; font-family:'Amiri',serif; font-size:18px; color:var(--gold); }
+.reader-controls { display:flex; gap:8px; }
+.reader-btn { background:rgba(201,168,76,0.1); border:1px solid rgba(201,168,76,0.2); color:var(--gold); border-radius:8px; padding:6px 10px; font-size:12px; cursor:pointer; white-space:nowrap; }
+.reader-content { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+.bismillah { text-align:center; padding:20px 16px 8px; font-family:'Scheherazade New',serif; font-size:28px; color:var(--gold); direction:rtl; line-height:1.8; }
+.ayah-block { padding:16px; border-bottom:1px solid rgba(255,255,255,0.05); }
+.ayah-ar { font-family:'Scheherazade New',serif; font-size:24px; color:var(--cream); line-height:2; direction:rtl; text-align:right; margin-bottom:8px; }
+.ayah-num { display:inline-flex; width:28px; height:28px; background:rgba(201,168,76,0.15); border-radius:50%; align-items:center; justify-content:center; font-size:11px; color:var(--gold); margin-right:4px; vertical-align:middle; }
+.ayah-en { font-size:13px; color:var(--text2); line-height:1.7; }
+.ayah-block.highlighted { background:rgba(201,168,76,0.08); }
+
+/* ── AZAN PAGE ── */
+#azan-page { padding:16px; }
+.location-bar { background:var(--navy2); border:1px solid rgba(201,168,76,0.15); border-radius:12px; padding:12px 14px; display:flex; align-items:center; gap:8px; margin-bottom:16px; cursor:pointer; }
+.location-bar .loc-icon { font-size:18px; }
+.location-bar .loc-text { flex:1; }
+.location-bar .loc-name { font-size:13px; font-weight:500; color:var(--text); }
+.location-bar .loc-sub { font-size:11px; color:var(--text2); }
+.location-bar .loc-refresh { font-size:14px; color:var(--gold); }
+
+.qibla-card { background:linear-gradient(135deg, var(--navy2), var(--navy3)); border:1px solid rgba(201,168,76,0.2); border-radius:var(--radius); padding:20px; text-align:center; margin-bottom:16px; }
+.qibla-compass { position:relative; width:120px; height:120px; margin:0 auto 12px; }
+.compass-ring { width:120px; height:120px; border-radius:50%; border:2px solid rgba(201,168,76,0.3); position:absolute; display:flex; align-items:center; justify-content:center; }
+.compass-needle { position:absolute; width:4px; height:50px; background:linear-gradient(var(--gold), rgba(201,168,76,0.2)); border-radius:2px; top:10px; left:50%; transform:translateX(-50%); transform-origin:bottom center; transition:transform 1s ease; }
+.compass-center { width:10px; height:10px; background:var(--gold); border-radius:50%; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); }
+.qibla-angle { font-size:13px; color:var(--text2); }
+
+.prayer-times-full { background:var(--navy2); border-radius:var(--radius); overflow:hidden; border:1px solid rgba(201,168,76,0.12); }
+.pt-header { padding:14px 16px; background:rgba(201,168,76,0.08); border-bottom:1px solid rgba(201,168,76,0.1); }
+.pt-header h3 { font-family:'Amiri',serif; font-size:18px; color:var(--gold); }
+.pt-row { display:flex; align-items:center; padding:14px 16px; border-bottom:1px solid rgba(255,255,255,0.04); transition:background .2s; }
+.pt-row.current { background:rgba(201,168,76,0.1); }
+.pt-row:last-child { border-bottom:none; }
+.pt-icon { font-size:20px; margin-right:12px; width:30px; text-align:center; }
+.pt-name { flex:1; font-size:14px; font-weight:500; color:var(--text); }
+.pt-name-ar { font-family:'Scheherazade New',serif; font-size:14px; color:var(--text2); display:block; }
+.pt-time { font-size:16px; font-weight:600; color:var(--gold2); }
+.pt-notify { background:none; border:1px solid rgba(201,168,76,0.2); color:var(--gold); border-radius:6px; padding:4px 8px; font-size:11px; cursor:pointer; margin-left:8px; }
+.pt-notify.on { background:var(--gold); color:var(--navy); }
+
+/* ── DHIKR PAGE ── */
+#dhikr-page { padding:16px; }
+.dhikr-counter {
+  background:radial-gradient(circle at center, rgba(201,168,76,0.15), rgba(10,22,40,0));
+  border:1px solid rgba(201,168,76,0.25); border-radius:50%; width:200px; height:200px;
+  margin:24px auto 20px; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  cursor:pointer; transition:all .15s; position:relative;
+}
+.dhikr-counter:active { transform:scale(.95); }
+.dhikr-counter .count-num { font-size:64px; font-weight:600; color:var(--gold); line-height:1; }
+.dhikr-counter .count-label { font-size:12px; color:var(--text2); margin-top:4px; }
+.dhikr-ring { position:absolute; inset:-4px; border-radius:50%; border:2px dashed rgba(201,168,76,0.15); animation:spin 30s linear infinite; }
+@keyframes spin { to{transform:rotate(360deg)} }
+
+.dhikr-text { font-family:'Scheherazade New',serif; font-size:22px; color:var(--gold2); text-align:center; direction:rtl; line-height:1.8; margin-bottom:6px; }
+.dhikr-trans { font-size:13px; color:var(--text2); text-align:center; line-height:1.6; margin-bottom:20px; }
+.dhikr-controls { display:flex; gap:10px; justify-content:center; margin-bottom:20px; }
+.dhikr-btn { background:var(--navy2); border:1px solid rgba(201,168,76,0.2); color:var(--text); border-radius:10px; padding:10px 20px; font-family:'Poppins',sans-serif; font-size:13px; cursor:pointer; }
+.dhikr-btn.primary { background:var(--gold); color:var(--navy); border-color:var(--gold); font-weight:600; }
+.dhikr-list { display:flex; flex-direction:column; gap:8px; }
+.dhikr-item { background:var(--navy2); border:1px solid rgba(201,168,76,0.1); border-radius:12px; padding:14px; cursor:pointer; transition:all .2s; }
+.dhikr-item:active { background:rgba(201,168,76,0.1); }
+.dhikr-item.selected { border-color:var(--gold); background:rgba(201,168,76,0.08); }
+.dhikr-item-ar { font-family:'Scheherazade New',serif; font-size:16px; color:var(--text); direction:rtl; text-align:right; margin-bottom:4px; }
+.dhikr-item-en { font-size:11px; color:var(--text2); }
+.dhikr-item-count { font-size:11px; color:var(--gold); margin-top:4px; }
+
+/* ── SETTINGS ── */
+#settings-page { padding:16px; }
+.settings-section { margin-bottom:20px; }
+.settings-title { font-size:12px; font-weight:600; color:var(--text2); text-transform:uppercase; letter-spacing:1px; margin-bottom:10px; }
+.settings-card { background:var(--navy2); border:1px solid rgba(201,168,76,0.1); border-radius:var(--radius); overflow:hidden; }
+.setting-row { display:flex; align-items:center; padding:14px 16px; border-bottom:1px solid rgba(255,255,255,0.04); }
+.setting-row:last-child { border-bottom:none; }
+.setting-label { flex:1; }
+.setting-name { font-size:14px; color:var(--text); }
+.setting-sub { font-size:11px; color:var(--text2); margin-top:2px; }
+.toggle { width:44px; height:24px; background:rgba(255,255,255,0.1); border-radius:12px; position:relative; cursor:pointer; transition:background .2s; flex-shrink:0; border:none; }
+.toggle.on { background:var(--gold); }
+.toggle::after { content:''; position:absolute; width:20px; height:20px; background:white; border-radius:50%; top:2px; left:2px; transition:transform .2s; }
+.toggle.on::after { transform:translateX(20px); }
+select.setting-select { background:var(--navy3); border:1px solid rgba(201,168,76,0.2); color:var(--text); border-radius:8px; padding:6px 10px; font-family:'Poppins',sans-serif; font-size:13px; cursor:pointer; }
+
+/* ── AUDIO PLAYER ── */
+#audio-player { position:fixed; bottom:60px; left:0; right:0; background:var(--navy2); border-top:1px solid rgba(201,168,76,0.2); padding:10px 16px; display:none; z-index:50; }
+#audio-player.visible { display:flex; align-items:center; gap:10px; }
+.ap-info { flex:1; }
+.ap-title { font-size:13px; font-weight:500; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.ap-sub { font-size:11px; color:var(--text2); }
+.ap-btn { background:var(--gold); border:none; color:var(--navy); width:36px; height:36px; border-radius:50%; font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.ap-btn.secondary { background:rgba(201,168,76,0.15); color:var(--gold); }
+.ap-progress { position:absolute; top:0; left:0; right:0; height:2px; background:rgba(201,168,76,0.1); }
+.ap-progress-fill { height:100%; background:var(--gold); transition:width .5s linear; }
+
+/* ── BOTTOM NAV ── */
+#bottom-nav { height:60px; background:var(--navy2); border-top:1px solid rgba(201,168,76,0.12); display:flex; flex-shrink:0; }
+
+/* ── TOAST ── */
+.toast { position:fixed; top:20px; left:50%; transform:translateX(-50%) translateY(-100px); background:rgba(201,168,76,0.95); color:var(--navy); padding:10px 20px; border-radius:20px; font-size:13px; font-weight:500; z-index:1000; transition:transform .3s; white-space:nowrap; }
+.toast.show { transform:translateX(-50%) translateY(0); }
+
+/* ── FONT SIZE ── */
+.fs-small .ayah-ar { font-size:20px; }
+.fs-large .ayah-ar { font-size:28px; }
+.fs-xlarge .ayah-ar { font-size:32px; }
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width:3px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:rgba(201,168,76,0.3); border-radius:2px; }
+
+/* ── LOADING ── */
+.loading-spinner { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:40px; gap:12px; }
+.spinner { width:32px; height:32px; border:3px solid rgba(201,168,76,0.2); border-top-color:var(--gold); border-radius:50%; animation:spin .8s linear infinite; }
+.spinner-text { font-size:13px; color:var(--text2); }
+
+@keyframes spin2 { to{transform:rotate(360deg)} }
+.spinner { animation:spin2 .8s linear infinite; }
+</style>
+</head>
+<body>
+
+<!-- SPLASH -->
+<div id="splash">
+  <div class="mosque-art">🕌</div>
+  <h1>بِسْمِ اللهِ الرَّحْمٰنِ الرَّحِيْمِ</h1>
+  <p>Al-Quran & Azan — Loading...</p>
+  <div class="dots"><span></span><span></span><span></span></div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- APP -->
+<div id="app" style="display:none;">
+  <!-- HEADER -->
+  <div id="header">
+    <div class="header-top">
+      <div class="app-title">🌙 Al-Quran & Azan</div>
+      <div class="header-time">
+        <div class="time-big" id="clock">--:--</div>
+        <div class="date-small" id="islamic-date">Loading...</div>
+      </div>
+    </div>
+    <!-- Prayer Strip -->
+    <div id="prayer-strip">
+      <div class="prayer-strip-inner" id="prayer-strip-inner">
+        <div class="prayer-card"><div class="prayer-name">Fajr</div><div class="prayer-time" id="strip-fajr">--:--</div></div>
+        <div class="prayer-card"><div class="prayer-name">Sunrise</div><div class="prayer-time" id="strip-sunrise">--:--</div></div>
+        <div class="prayer-card"><div class="prayer-name">Dhuhr</div><div class="prayer-time" id="strip-dhuhr">--:--</div></div>
+        <div class="prayer-card"><div class="prayer-name">Asr</div><div class="prayer-time" id="strip-asr">--:--</div></div>
+        <div class="prayer-card"><div class="prayer-name">Maghrib</div><div class="prayer-time" id="strip-maghrib">--:--</div></div>
+        <div class="prayer-card"><div class="prayer-name">Isha</div><div class="prayer-time" id="strip-isha">--:--</div></div>
+      </div>
+      <div class="countdown-bar">
+        <div class="countdown-text" id="next-prayer-label">Getting prayer times...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div id="tabs">
+    <button class="tab-btn active" onclick="showPage('home')" id="tab-home">
+      <span class="tab-icon">🏠</span><span>Home</span>
+    </button>
+    <button class="tab-btn" onclick="showPage('quran')" id="tab-quran">
+      <span class="tab-icon">📖</span><span>Quran</span>
+    </button>
+    <button class="tab-btn" onclick="showPage('azan')" id="tab-azan">
+      <span class="tab-icon">🕌</span><span>Azan</span>
+    </button>
+    <button class="tab-btn" onclick="showPage('dhikr')" id="tab-dhikr">
+      <span class="tab-icon">📿</span><span>Dhikr</span>
+    </button>
+    <button class="tab-btn" onclick="showPage('settings')" id="tab-settings">
+      <span class="tab-icon">⚙️</span><span>Settings</span>
+    </button>
+  </div>
+
+  <!-- CONTENT -->
+  <div id="content">
+
+    <!-- HOME -->
+    <div class="page active" id="home-page">
+      <div class="next-prayer-hero">
+        <div class="label">Next Prayer</div>
+        <div class="prayer-big" id="home-next-name">Dhuhr</div>
+        <div class="time-big" id="home-next-time">--:--</div>
+        <div class="countdown" id="home-countdown">Calculating...</div>
+      </div>
+
+      <div class="section-title">Quick Access</div>
+      <div class="quick-grid">
+        <div class="quick-card" onclick="showPage('quran')">
+          <div class="qc-icon">📖</div>
+          <div class="qc-title">Al-Quran</div>
+          <div class="qc-sub">114 Surahs</div>
+        </div>
+        <div class="quick-card" onclick="showPage('azan')">
+          <div class="qc-icon">🕌</div>
+          <div class="qc-title">Prayer Times</div>
+          <div class="qc-sub">& Qibla</div>
+        </div>
+        <div class="quick-card" onclick="openSurah(36)">
+          <div class="qc-icon">💫</div>
+          <div class="qc-title">Surah Yasin</div>
+          <div class="qc-sub">Heart of Quran</div>
+        </div>
+        <div class="quick-card" onclick="showPage('dhikr')">
+          <div class="qc-icon">📿</div>
+          <div class="qc-title">Dhikr Counter</div>
+          <div class="qc-sub">Subhanallah</div>
+        </div>
+      </div>
+
+      <div class="section-title">Ayah of the Day</div>
+      <div class="hadith-card" id="ayah-day">
+        <div class="hadith-ar" id="ayah-day-ar">إِنَّ مَعَ الْعُسْرِ يُسْرًا</div>
+        <div class="hadith-en" id="ayah-day-en">Indeed, with hardship will be ease.</div>
+        <div class="hadith-src" id="ayah-day-src">Al-Inshirah 94:6</div>
+      </div>
+    </div>
+
+    <!-- QURAN -->
+    <div class="page" id="quran-page">
+      <div class="quran-search">
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="surah-search" placeholder="Search surah name..." oninput="filterSurahs(this.value)">
+        </div>
+      </div>
+      <div class="surah-list" id="surah-list">
+        <div class="loading-spinner"><div class="spinner"></div><div class="spinner-text">Loading Surahs...</div></div>
+      </div>
+    </div>
+
+    <!-- READER (shown instead of quran-page) -->
+    <div class="page" id="reader-page">
+      <div class="reader-header">
+        <button class="reader-back" onclick="closeReader()">←</button>
+        <div class="reader-title" id="reader-title">Surah</div>
+        <div class="reader-controls">
+          <button class="reader-btn" onclick="changeFontSize()">A+</button>
+          <button class="reader-btn" id="trans-toggle" onclick="toggleTranslation()">EN</button>
+        </div>
+      </div>
+      <div class="reader-content" id="reader-content">
+        <div class="loading-spinner"><div class="spinner"></div><div class="spinner-text">Loading Surah...</div></div>
+      </div>
+    </div>
+
+    <!-- AZAN -->
+    <div class="page" id="azan-page">
+      <div class="location-bar" onclick="refreshLocation()">
+        <span class="loc-icon">📍</span>
+        <div class="loc-text">
+          <div class="loc-name" id="loc-name">Detecting location...</div>
+          <div class="loc-sub" id="loc-coords">Tap to refresh</div>
+        </div>
+        <span class="loc-refresh">↻</span>
+      </div>
+
+      <div class="qibla-card">
+        <h3 style="font-family:'Amiri',serif;color:var(--gold);margin-bottom:16px;font-size:18px;">🧭 Qibla Direction</h3>
+        <div class="qibla-compass">
+          <div class="compass-ring">
+            <div class="compass-needle" id="qibla-needle"></div>
+            <div class="compass-center"></div>
+          </div>
+        </div>
+        <div class="qibla-angle" id="qibla-text">Calculating Qibla direction...</div>
+      </div>
+
+      <div class="prayer-times-full">
+        <div class="pt-header"><h3>📅 Today's Prayer Times</h3></div>
+        <div id="full-prayer-times">
+          <div class="loading-spinner"><div class="spinner"></div><div class="spinner-text">Fetching times...</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DHIKR -->
+    <div class="page" id="dhikr-page">
+      <div class="dhikr-text" id="dhikr-ar">سُبْحَانَ اللّٰهِ</div>
+      <div class="dhikr-trans" id="dhikr-trans">Glory be to Allah</div>
+      <div class="dhikr-counter" onclick="incrementDhikr()" id="dhikr-counter">
+        <div class="dhikr-ring"></div>
+        <div class="count-num" id="dhikr-count">0</div>
+        <div class="count-label" id="dhikr-target-lbl">Tap to count</div>
+      </div>
+      <div class="dhikr-controls">
+        <button class="dhikr-btn" onclick="resetDhikr()">Reset</button>
+        <button class="dhikr-btn primary" onclick="nextDhikr()">Next Dhikr</button>
+      </div>
+      <div class="section-title">Dhikr Collection</div>
+      <div class="dhikr-list" id="dhikr-list"></div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="page" id="settings-page">
+      <div class="settings-section">
+        <div class="settings-title">Prayer Times</div>
+        <div class="settings-card">
+          <div class="setting-row">
+            <div class="setting-label">
+              <div class="setting-name">Calculation Method</div>
+              <div class="setting-sub">Muslim World League recommended</div>
+            </div>
+            <select class="setting-select" id="calc-method" onchange="saveSetting('calcMethod',this.value);refreshPrayerTimes()">
+              <option value="2">MWL</option>
+              <option value="3">Egyptian</option>
+              <option value="4">Makkah</option>
+              <option value="5">Karachi</option>
+              <option value="1">North America</option>
+            </select>
+          </div>
+          <div class="setting-row">
+            <div class="setting-label">
+              <div class="setting-name">Azan Notifications</div>
+              <div class="setting-sub">Alert before each prayer</div>
+            </div>
+            <button class="toggle" id="notif-toggle" onclick="toggleSetting('notifications',this)"></button>
+          </div>
+          <div class="setting-row">
+            <div class="setting-label">
+              <div class="setting-name">24-Hour Format</div>
+            </div>
+            <button class="toggle" id="format24-toggle" onclick="toggleSetting('format24',this)"></button>
+          </div>
+        </div>
+      </div>
+      <div class="settings-section">
+        <div class="settings-title">Quran Display</div>
+        <div class="settings-card">
+          <div class="setting-row">
+            <div class="setting-label">
+              <div class="setting-name">Show Translation</div>
+              <div class="setting-sub">English translation (Sahih Int'l)</div>
+            </div>
+            <button class="toggle on" id="trans-setting" onclick="toggleSetting('showTrans',this)"></button>
+          </div>
+          <div class="setting-row">
+            <div class="setting-label">
+              <div class="setting-name">Font Size</div>
+            </div>
+            <select class="setting-select" onchange="saveSetting('fontSize',this.value)">
+              <option value="normal">Normal</option>
+              <option value="large">Large</option>
+              <option value="xlarge">X-Large</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="settings-section">
+        <div class="settings-title">About</div>
+        <div class="settings-card">
+          <div class="setting-row">
+            <div class="setting-label">
+              <div class="setting-name">Al-Quran & Azan</div>
+              <div class="setting-sub">Version 1.0 — Quran data from quran.com API</div>
+            </div>
+          </div>
+          <div class="setting-row">
+            <div class="setting-label">
+              <div class="setting-name">Prayer Times</div>
+              <div class="setting-sub">Powered by aladhan.com API</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+
+  <!-- BOTTOM NAV (same as tabs but styled nicely) -->
+
+  <!-- AUDIO PLAYER -->
+  <div id="audio-player">
+    <div class="ap-progress"><div class="ap-progress-fill" id="ap-bar"></div></div>
+    <button class="ap-btn secondary" onclick="stopAudio()">✕</button>
+    <div class="ap-info">
+      <div class="ap-title" id="ap-title">Azan Al-Fajr</div>
+      <div class="ap-sub" id="ap-sub">Playing...</div>
+    </div>
+    <button class="ap-btn" id="ap-play-btn" onclick="toggleAudio()">⏸</button>
+  </div>
+
+</div><!-- /app -->
+
+<audio id="main-audio" preload="none"></audio>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// DATA
+// ═══════════════════════════════════════════════════════════
+
+const SURAHS = [
+  {n:1,ar:'الفَاتِحَة',en:'Al-Fatihah',tr:'The Opening',v:7,ty:'Meccan'},
+  {n:2,ar:'البَقَرَة',en:'Al-Baqarah',tr:'The Cow',v:286,ty:'Medinan'},
+  {n:3,ar:'آلِ عِمۡرَانَ',en:"Ali 'Imran",tr:'Family of Imran',v:200,ty:'Medinan'},
+  {n:4,ar:'النِّسَاء',en:"An-Nisa'",tr:'The Women',v:176,ty:'Medinan'},
+  {n:5,ar:'المَائِدَة',en:'Al-Ma\'idah',tr:'The Table Spread',v:120,ty:'Medinan'},
+  {n:6,ar:'الأَنۡعَام',en:"Al-An'am",tr:'The Cattle',v:165,ty:'Meccan'},
+  {n:7,ar:'الأَعۡرَاف',en:"Al-A'raf",tr:'The Heights',v:206,ty:'Meccan'},
+  {n:8,ar:'الأَنفَال',en:'Al-Anfal',tr:'The Spoils of War',v:75,ty:'Medinan'},
+  {n:9,ar:'التَّوۡبَة',en:'At-Tawbah',tr:'The Repentance',v:129,ty:'Medinan'},
+  {n:10,ar:'يُونُس',en:'Yunus',tr:'Jonah',v:109,ty:'Meccan'},
+  {n:11,ar:'هُود',en:'Hud',tr:'Hud',v:123,ty:'Meccan'},
+  {n:12,ar:'يُوسُف',en:'Yusuf',tr:'Joseph',v:111,ty:'Meccan'},
+  {n:13,ar:'الرَّعۡد',en:"Ar-Ra'd",tr:'The Thunder',v:43,ty:'Medinan'},
+  {n:14,ar:'إِبۡرَاهِيم',en:'Ibrahim',tr:'Abraham',v:52,ty:'Meccan'},
+  {n:15,ar:'الحِجۡر',en:'Al-Hijr',tr:'The Rocky Tract',v:99,ty:'Meccan'},
+  {n:16,ar:'النَّحۡل',en:'An-Nahl',tr:'The Bee',v:128,ty:'Meccan'},
+  {n:17,ar:'الإِسۡرَاء',en:"Al-Isra'",tr:'The Night Journey',v:111,ty:'Meccan'},
+  {n:18,ar:'الكَهۡف',en:'Al-Kahf',tr:'The Cave',v:110,ty:'Meccan'},
+  {n:19,ar:'مَرۡيَم',en:'Maryam',tr:'Mary',v:98,ty:'Meccan'},
+  {n:20,ar:'طه',en:'Ta-Ha',tr:'Ta-Ha',v:135,ty:'Meccan'},
+  {n:21,ar:'الأَنبِيَاء',en:"Al-Anbiya'",tr:'The Prophets',v:112,ty:'Meccan'},
+  {n:22,ar:'الحَجّ',en:'Al-Hajj',tr:'The Pilgrimage',v:78,ty:'Medinan'},
+  {n:23,ar:'المُؤۡمِنُون',en:"Al-Mu'minun",tr:'The Believers',v:118,ty:'Meccan'},
+  {n:24,ar:'النُّور',en:'An-Nur',tr:'The Light',v:64,ty:'Medinan'},
+  {n:25,ar:'الفُرۡقَان',en:'Al-Furqan',tr:'The Criterion',v:77,ty:'Meccan'},
+  {n:26,ar:'الشُّعَرَاء',en:"Ash-Shu'ara'",tr:'The Poets',v:227,ty:'Meccan'},
+  {n:27,ar:'النَّمۡل',en:'An-Naml',tr:'The Ant',v:93,ty:'Meccan'},
+  {n:28,ar:'القَصَص',en:'Al-Qasas',tr:'The Stories',v:88,ty:'Meccan'},
+  {n:29,ar:'العَنكَبُوت',en:'Al-Ankabut',tr:'The Spider',v:69,ty:'Meccan'},
+  {n:30,ar:'الرُّوم',en:'Ar-Rum',tr:'The Romans',v:60,ty:'Meccan'},
+  {n:31,ar:'لُقۡمَان',en:'Luqman',tr:'Luqman',v:34,ty:'Meccan'},
+  {n:32,ar:'السَّجۡدَة',en:'As-Sajdah',tr:'The Prostration',v:30,ty:'Meccan'},
+  {n:33,ar:'الأَحۡزَاب',en:'Al-Ahzab',tr:'The Combined Forces',v:73,ty:'Medinan'},
+  {n:34,ar:'سَبَأ',en:"Saba'",tr:'Sheba',v:54,ty:'Meccan'},
+  {n:35,ar:'فَاطِر',en:'Fatir',tr:'Originator',v:45,ty:'Meccan'},
+  {n:36,ar:'يس',en:'Ya-Sin',tr:'Ya-Sin',v:83,ty:'Meccan'},
+  {n:37,ar:'الصَّافَّات',en:"As-Saffat",tr:'Those Who Set the Ranks',v:182,ty:'Meccan'},
+  {n:38,ar:'ص',en:'Sad',tr:'Sad',v:88,ty:'Meccan'},
+  {n:39,ar:'الزُّمَر',en:'Az-Zumar',tr:'The Troops',v:75,ty:'Meccan'},
+  {n:40,ar:'غَافِر',en:'Ghafir',tr:'The Forgiver',v:85,ty:'Meccan'},
+  {n:41,ar:'فُصِّلَت',en:'Fussilat',tr:'Explained in Detail',v:54,ty:'Meccan'},
+  {n:42,ar:'الشُّورَى',en:'Ash-Shura',tr:'The Consultation',v:53,ty:'Meccan'},
+  {n:43,ar:'الزُّخۡرُف',en:'Az-Zukhruf',tr:'The Ornaments of Gold',v:89,ty:'Meccan'},
+  {n:44,ar:'الدُّخَان',en:'Ad-Dukhan',tr:'The Smoke',v:59,ty:'Meccan'},
+  {n:45,ar:'الجَاثِيَة',en:'Al-Jathiyah',tr:'The Crouching',v:37,ty:'Meccan'},
+  {n:46,ar:'الأَحقَاف',en:'Al-Ahqaf',tr:'The Wind-Curved Sandhills',v:35,ty:'Meccan'},
+  {n:47,ar:'مُحَمَّد',en:'Muhammad',tr:'Muhammad',v:38,ty:'Medinan'},
+  {n:48,ar:'الفَتۡح',en:'Al-Fath',tr:'The Victory',v:29,ty:'Medinan'},
+  {n:49,ar:'الحُجُرَات',en:'Al-Hujurat',tr:'The Rooms',v:18,ty:'Medinan'},
+  {n:50,ar:'ق',en:'Qaf',tr:'Qaf',v:45,ty:'Meccan'},
+  {n:51,ar:'الذَّارِيَات',en:'Adh-Dhariyat',tr:'The Winnowing Winds',v:60,ty:'Meccan'},
+  {n:52,ar:'الطُّور',en:'At-Tur',tr:'The Mount',v:49,ty:'Meccan'},
+  {n:53,ar:'النَّجۡم',en:'An-Najm',tr:'The Star',v:62,ty:'Meccan'},
+  {n:54,ar:'القَمَر',en:'Al-Qamar',tr:'The Moon',v:55,ty:'Meccan'},
+  {n:55,ar:'الرَّحۡمَٰن',en:'Ar-Rahman',tr:'The Beneficent',v:78,ty:'Medinan'},
+  {n:56,ar:'الوَاقِعَة',en:"Al-Waqi'ah",tr:'The Inevitable',v:96,ty:'Meccan'},
+  {n:57,ar:'الحَدِيد',en:'Al-Hadid',tr:'The Iron',v:29,ty:'Medinan'},
+  {n:58,ar:'المُجَادِلَة',en:'Al-Mujadila',tr:'The Pleading Woman',v:22,ty:'Medinan'},
+  {n:59,ar:'الحَشۡر',en:'Al-Hashr',tr:'The Exile',v:24,ty:'Medinan'},
+  {n:60,ar:'المُمۡتَحَنَة',en:'Al-Mumtahanah',tr:'She That is to be Examined',v:13,ty:'Medinan'},
+  {n:61,ar:'الصَّفّ',en:'As-Saf',tr:'The Ranks',v:14,ty:'Medinan'},
+  {n:62,ar:'الجُمُعَة',en:"Al-Jumu'ah",tr:'The Congregation',v:11,ty:'Medinan'},
+  {n:63,ar:'المُنَافِقُون',en:'Al-Munafiqun',tr:'The Hypocrites',v:11,ty:'Medinan'},
+  {n:64,ar:'التَّغَابُن',en:'At-Taghabun',tr:'The Mutual Disillusion',v:18,ty:'Medinan'},
+  {n:65,ar:'الطَّلَاق',en:'At-Talaq',tr:'The Divorce',v:12,ty:'Medinan'},
+  {n:66,ar:'التَّحۡرِيم',en:'At-Tahrim',tr:'The Prohibition',v:12,ty:'Medinan'},
+  {n:67,ar:'المُلۡك',en:'Al-Mulk',tr:'The Sovereignty',v:30,ty:'Meccan'},
+  {n:68,ar:'القَلَم',en:'Al-Qalam',tr:'The Pen',v:52,ty:'Meccan'},
+  {n:69,ar:'الحَاقَّة',en:"Al-Haqqah",tr:'The Reality',v:52,ty:'Meccan'},
+  {n:70,ar:'المَعَارِج',en:'Al-Ma\'arij',tr:'The Ascending Stairways',v:44,ty:'Meccan'},
+  {n:71,ar:'نُوح',en:'Nuh',tr:'Noah',v:28,ty:'Meccan'},
+  {n:72,ar:'الجِنّ',en:'Al-Jinn',tr:'The Jinn',v:28,ty:'Meccan'},
+  {n:73,ar:'المُزَّمِّل',en:'Al-Muzzammil',tr:'The Enshrouded One',v:20,ty:'Meccan'},
+  {n:74,ar:'المُدَّثِّر',en:'Al-Muddaththir',tr:'The Cloaked One',v:56,ty:'Meccan'},
+  {n:75,ar:'القِيَامَة',en:'Al-Qiyamah',tr:'The Resurrection',v:40,ty:'Meccan'},
+  {n:76,ar:'الإِنسَان',en:'Al-Insan',tr:'The Human',v:31,ty:'Medinan'},
+  {n:77,ar:'المُرۡسَلَات',en:'Al-Mursalat',tr:'The Emissaries',v:50,ty:'Meccan'},
+  {n:78,ar:'النَّبَإ',en:"An-Naba'",tr:'The Tidings',v:40,ty:'Meccan'},
+  {n:79,ar:'النَّازِعَات',en:"An-Nazi'at",tr:'Those Who Drag Forth',v:46,ty:'Meccan'},
+  {n:80,ar:'عَبَسَ',en:"'Abasa",tr:'He Frowned',v:42,ty:'Meccan'},
+  {n:81,ar:'التَّكۡوِير',en:'At-Takwir',tr:'The Overthrowing',v:29,ty:'Meccan'},
+  {n:82,ar:'الإِنفِطَار',en:'Al-Infitar',tr:'The Cleaving',v:19,ty:'Meccan'},
+  {n:83,ar:'المُطَفِّفِين',en:'Al-Mutaffifin',tr:'The Defrauding',v:36,ty:'Meccan'},
+  {n:84,ar:'الإِنشِقَاق',en:'Al-Inshiqaq',tr:'The Sundering',v:25,ty:'Meccan'},
+  {n:85,ar:'البُرُوج',en:'Al-Buruj',tr:'The Mansions of the Stars',v:22,ty:'Meccan'},
+  {n:86,ar:'الطَّارِق',en:'At-Tariq',tr:'The Morning Star',v:17,ty:'Meccan'},
+  {n:87,ar:'الأَعۡلَى',en:"Al-A'la",tr:'The Most High',v:19,ty:'Meccan'},
+  {n:88,ar:'الغَاشِيَة',en:'Al-Ghashiyah',tr:'The Overwhelming',v:26,ty:'Meccan'},
+  {n:89,ar:'الفَجۡر',en:'Al-Fajr',tr:'The Dawn',v:30,ty:'Meccan'},
+  {n:90,ar:'البَلَد',en:'Al-Balad',tr:'The City',v:20,ty:'Meccan'},
+  {n:91,ar:'الشَّمۡس',en:'Ash-Shams',tr:'The Sun',v:15,ty:'Meccan'},
+  {n:92,ar:'اللَّيۡل',en:'Al-Layl',tr:'The Night',v:21,ty:'Meccan'},
+  {n:93,ar:'الضُّحَى',en:'Ad-Duhaa',tr:'The Morning Hours',v:11,ty:'Meccan'},
+  {n:94,ar:'الشَّرۡح',en:'Ash-Sharh',tr:'The Relief',v:8,ty:'Meccan'},
+  {n:95,ar:'التِّين',en:'At-Tin',tr:'The Fig',v:8,ty:'Meccan'},
+  {n:96,ar:'العَلَق',en:"Al-'Alaq",tr:'The Clot',v:19,ty:'Meccan'},
+  {n:97,ar:'القَدۡر',en:'Al-Qadr',tr:'The Power',v:5,ty:'Meccan'},
+  {n:98,ar:'البَيِّنَة',en:'Al-Bayyinah',tr:'The Clear Proof',v:8,ty:'Medinan'},
+  {n:99,ar:'الزَّلۡزَلَة',en:'Az-Zalzalah',tr:'The Earthquake',v:8,ty:'Medinan'},
+  {n:100,ar:'العَادِيَات',en:"Al-'Adiyat",tr:'The Courser',v:11,ty:'Meccan'},
+  {n:101,ar:'القَارِعَة',en:"Al-Qari'ah",tr:'The Calamity',v:11,ty:'Meccan'},
+  {n:102,ar:'التَّكَاثُر',en:'At-Takathur',tr:'The Rivalry in World Increase',v:8,ty:'Meccan'},
+  {n:103,ar:'العَصۡر',en:"Al-'Asr",tr:'The Declining Day',v:3,ty:'Meccan'},
+  {n:104,ar:'الهُمَزَة',en:'Al-Humazah',tr:'The Traducer',v:9,ty:'Meccan'},
+  {n:105,ar:'الفِيل',en:'Al-Fil',tr:'The Elephant',v:5,ty:'Meccan'},
+  {n:106,ar:'قُرَيۡش',en:'Quraysh',tr:'Quraysh',v:4,ty:'Meccan'},
+  {n:107,ar:'المَاعُون',en:"Al-Ma'un",tr:'The Small Kindnesses',v:7,ty:'Meccan'},
+  {n:108,ar:'الكَوۡثَر',en:'Al-Kawthar',tr:'The Abundance',v:3,ty:'Meccan'},
+  {n:109,ar:'الكَافِرُون',en:'Al-Kafirun',tr:'The Disbelievers',v:6,ty:'Meccan'},
+  {n:110,ar:'النَّصۡر',en:'An-Nasr',tr:'The Divine Support',v:3,ty:'Medinan'},
+  {n:111,ar:'المَسَد',en:'Al-Masad',tr:'The Palm Fiber',v:5,ty:'Meccan'},
+  {n:112,ar:'الإِخۡلَاص',en:'Al-Ikhlas',tr:'The Sincerity',v:4,ty:'Meccan'},
+  {n:113,ar:'الفَلَق',en:'Al-Falaq',tr:'The Daybreak',v:5,ty:'Meccan'},
+  {n:114,ar:'النَّاس',en:'An-Nas',tr:'The Mankind',v:6,ty:'Meccan'},
+];
+
+const DHIKR_LIST = [
+  {ar:'سُبْحَانَ اللّٰهِ',en:'Glory be to Allah',count:33},
+  {ar:'الحَمْدُ لِلّٰهِ',en:'All praise is due to Allah',count:33},
+  {ar:'اللّٰهُ أَكْبَر',en:'Allah is the Greatest',count:34},
+  {ar:'لَا إِلَٰهَ إِلَّا اللّٰهُ',en:'There is no god but Allah',count:100},
+  {ar:'اللَّهُمَّ صَلِّ عَلَى مُحَمَّد',en:'O Allah, send blessings upon Muhammad',count:10},
+  {ar:'أَسْتَغْفِرُ اللّٰهَ',en:'I seek forgiveness from Allah',count:100},
+  {ar:'سُبْحَانَ اللهِ وَبِحَمْدِهِ',en:'Glory and praise be to Allah',count:100},
+  {ar:'لَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللّٰهِ',en:'There is no power or might except with Allah',count:10},
+];
+
+const AYAHS_OF_DAY = [
+  {ar:'إِنَّ مَعَ الْعُسْرِ يُسْرًا',en:'Indeed, with hardship will be ease.',src:'Al-Inshirah 94:6'},
+  {ar:'وَإِذَا سَأَلَكَ عِبَادِي عَنِّي فَإِنِّي قَرِيبٌ',en:'And when My servants ask you about Me - indeed I am near.',src:'Al-Baqarah 2:186'},
+  {ar:'فَإِنَّ مَعَ الْعُسْرِ يُسْرًا',en:'For indeed, with hardship will be ease.',src:'Al-Inshirah 94:5'},
+  {ar:'حَسْبُنَا اللَّهُ وَنِعْمَ الْوَكِيلُ',en:'Sufficient for us is Allah, and He is the best disposer of affairs.',src:"Ali 'Imran 3:173"},
+  {ar:'وَمَن يَتَوَكَّلْ عَلَى اللَّهِ فَهُوَ حَسْبُهُ',en:'And whoever relies upon Allah - then He is sufficient for him.',src:'At-Talaq 65:3'},
+  {ar:'إِنَّ اللَّهَ مَعَ الصَّابِرِينَ',en:'Indeed, Allah is with the patient.',src:'Al-Baqarah 2:153'},
+  {ar:'رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً وَفِي الآخِرَةِ حَسَنَةً',en:'Our Lord, give us good in this world and good in the Hereafter.',src:'Al-Baqarah 2:201'},
+];
+
+// ═══════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════
+let currentPage = 'home';
+let prayerTimes = null;
+let userLat = null, userLon = null, userCity = '';
+let currentSurah = null;
+let showTranslation = true;
+let dhikrIndex = 0, dhikrCount = 0;
+let audioEl = document.getElementById('main-audio');
+let audioPlaying = false;
+let notificationsEnabled = {};
+let clockInterval, countdownInterval;
+
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+window.addEventListener('load', async () => {
+  loadSettings();
+  startClock();
+  renderDhikrList();
+  renderSurahList(SURAHS);
+  setAyahOfDay();
+
+  // Load location & prayer times
+  await getUserLocation();
+
+  // Hide splash after 2s
+  setTimeout(() => {
+    document.getElementById('splash').classList.add('hidden');
+    document.getElementById('app').style.display = 'flex';
+    setTimeout(() => document.getElementById('splash').remove(), 800);
+  }, 2000);
+});
+
+// ═══════════════════════════════════════════════════════════
+// CLOCK
+// ═══════════════════════════════════════════════════════════
+function startClock() {
+  updateClock();
+  setInterval(updateClock, 1000);
+}
+function updateClock() {
+  const now = new Date();
+  const fmt24 = getSetting('format24') === 'true';
+  let h = now.getHours(), m = now.getMinutes(), s = now.getSeconds();
+  let timeStr;
+  if (fmt24) {
+    timeStr = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+  } else {
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12 || 12;
+    timeStr = `${h}:${String(m).padStart(2,'0')} ${ampm}`;
+  }
+  document.getElementById('clock').textContent = timeStr;
+
+  // Islamic date approximation
+  const iDate = getIslamicDate(now);
+  document.getElementById('islamic-date').textContent = iDate;
+
+  updateCountdown();
+}
+
+function getIslamicDate(date) {
+  // Approximate Islamic date
+  const jd = Math.floor(date.getTime()/86400000) + 2440587.5;
+  const l = Math.floor(jd) - 1948440 + 10632;
+  const n = Math.floor((l-1)/10631);
+  const ll = l - 10631*n + 354;
+  const j = (Math.floor((10985-ll)/5316))*(Math.floor((50*ll)/17719)) + (Math.floor(ll/5670))*(Math.floor((43*ll)/15238));
+  const lo = ll - (Math.floor((30-j)/15))*(Math.floor((17719*j)/50)) - (Math.floor(j/16))*(Math.floor((15238*j)/43)) + 29;
+  const m = Math.floor((24*lo)/709);
+  const d = lo - Math.floor((709*m)/24);
+  const y = 30*n + j - 30;
+  const months = ['Muharram','Safar','Rabi I','Rabi II','Jumada I','Jumada II','Rajab',"Sha'ban",'Ramadan','Shawwal','Dhu\'l-Qadah','Dhu\'l-Hijjah'];
+  return `${d} ${months[m-1] || ''} ${y} AH`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// LOCATION & PRAYER TIMES
+// ═══════════════════════════════════════════════════════════
+async function getUserLocation() {
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        userLat = pos.coords.latitude;
+        userLon = pos.coords.longitude;
+        reverseGeocode(userLat, userLon);
+        fetchPrayerTimes(userLat, userLon);
+      },
+      err => {
+        // Fallback: Mecca
+        userLat = 21.3891; userLon = 39.8579; userCity = 'Mecca';
+        updateLocationUI();
+        fetchPrayerTimes(userLat, userLon);
+      }
+    );
+  } else {
+    userLat = 21.3891; userLon = 39.8579; userCity = 'Mecca';
+    updateLocationUI();
+    fetchPrayerTimes(userLat, userLon);
+  }
+}
+
+async function reverseGeocode(lat, lon) {
+  try {
+    const r = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`);
+    const d = await r.json();
+    userCity = d.address.city || d.address.town || d.address.county || 'Your Location';
+    updateLocationUI();
+  } catch(e) {
+    userCity = `${lat.toFixed(2)}°N ${lon.toFixed(2)}°E`;
+    updateLocationUI();
+  }
+}
+
+function updateLocationUI() {
+  document.getElementById('loc-name').textContent = userCity;
+  document.getElementById('loc-coords').textContent = `${userLat?.toFixed(4)}°, ${userLon?.toFixed(4)}°`;
+  calculateQibla(userLat, userLon);
+}
+
+async function fetchPrayerTimes(lat, lon) {
+  try {
+    const method = getSetting('calcMethod') || '2';
+    const now = new Date();
+    const d = `${now.getDate()}-${now.getMonth()+1}-${now.getFullYear()}`;
+    const url = `https://api.aladhan.com/v1/timings/${d}?latitude=${lat}&longitude=${lon}&method=${method}`;
+    const r = await fetch(url);
+    const data = await r.json();
+    if(data.code === 200) {
+      prayerTimes = data.data.timings;
+      renderPrayerTimes(prayerTimes);
+    }
+  } catch(e) {
+    console.error('Prayer times error:', e);
+  }
+}
+
+function refreshLocation() {
+  document.getElementById('loc-name').textContent = 'Refreshing...';
+  getUserLocation();
+  showToast('Refreshing location...');
+}
+function refreshPrayerTimes() {
+  if(userLat) fetchPrayerTimes(userLat, userLon);
+}
+
+function renderPrayerTimes(t) {
+  const prayers = [
+    {id:'fajr',name:'Fajr',ar:'الفجر',icon:'🌅',time:t.Fajr},
+    {id:'sunrise',name:'Sunrise',ar:'الشروق',icon:'☀️',time:t.Sunrise},
+    {id:'dhuhr',name:'Dhuhr',ar:'الظهر',icon:'🌞',time:t.Dhuhr},
+    {id:'asr',name:'Asr',ar:'العصر',icon:'🌤️',time:t.Asr},
+    {id:'maghrib',name:'Maghrib',ar:'المغرب',icon:'🌆',time:t.Maghrib},
+    {id:'isha',name:'Isha',ar:'العشاء',icon:'🌙',time:t.Isha},
+  ];
+
+  // Update strip
+  document.getElementById('strip-fajr').textContent = formatTime(t.Fajr);
+  document.getElementById('strip-sunrise').textContent = formatTime(t.Sunrise);
+  document.getElementById('strip-dhuhr').textContent = formatTime(t.Dhuhr);
+  document.getElementById('strip-asr').textContent = formatTime(t.Asr);
+  document.getElementById('strip-maghrib').textContent = formatTime(t.Maghrib);
+  document.getElementById('strip-isha').textContent = formatTime(t.Isha);
+
+  // Full prayer times
+  const next = getNextPrayer(prayers);
+  let html = '';
+  prayers.forEach((p,i) => {
+    const isCurrent = p.name === next?.name;
+    html += `<div class="pt-row ${isCurrent?'current':''}">
+      <span class="pt-icon">${p.icon}</span>
+      <div class="pt-name">${p.name}<span class="pt-name-ar">${p.ar}</span></div>
+      <span class="pt-time">${formatTime(p.time)}</span>
+      <button class="pt-notify ${notificationsEnabled[p.id]?'on':''}" onclick="toggleNotify('${p.id}',this)">🔔</button>
+    </div>`;
+  });
+  document.getElementById('full-prayer-times').innerHTML = html;
+
+  // Strip highlight
+  const strips = document.querySelectorAll('.prayer-card');
+  const prayerNames=['fajr','sunrise','dhuhr','asr','maghrib','isha'];
+  strips.forEach((el,i) => {
+    el.classList.remove('active','next');
+    if(prayerNames[i] === next?.id?.toLowerCase()) el.classList.add('next');
+  });
+
+  // Home hero
+  if(next) {
+    document.getElementById('home-next-name').textContent = next.name;
+    document.getElementById('home-next-time').textContent = formatTime(next.time);
+  }
+}
+
+function formatTime(t24) {
+  if(!t24) return '--:--';
+  const fmt24 = getSetting('format24') === 'true';
+  if(fmt24) return t24;
+  let [h,m] = t24.split(':').map(Number);
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12 || 12;
+  return `${h}:${String(m).padStart(2,'0')} ${ampm}`;
+}
+
+function getNextPrayer(prayers) {
+  const now = new Date();
+  const nowMins = now.getHours()*60 + now.getMinutes();
+  for(const p of prayers) {
+    if(!p.time) continue;
+    const [h,m] = p.time.split(':').map(Number);
+    const pMins = h*60+m;
+    if(pMins > nowMins) return p;
+  }
+  return prayers[0]; // next day fajr
+}
+
+function updateCountdown() {
+  if(!prayerTimes) return;
+  const prayers = ['Fajr','Sunrise','Dhuhr','Asr','Maghrib','Isha'];
+  const prayerIds = ['fajr','sunrise','dhuhr','asr','maghrib','isha'];
+  const times = [prayerTimes.Fajr,prayerTimes.Sunrise,prayerTimes.Dhuhr,prayerTimes.Asr,prayerTimes.Maghrib,prayerTimes.Isha];
+  const now = new Date();
+  const nowMins = now.getHours()*60+now.getMinutes()+now.getSeconds()/60;
+
+  let nextName='', nextMins=Infinity, nextIdx=-1;
+  for(let i=0;i<times.length;i++){
+    if(!times[i]) continue;
+    const [h,m] = times[i].split(':').map(Number);
+    const pm = h*60+m;
+    if(pm > nowMins && pm < nextMins){ nextMins=pm; nextName=prayers[i]; nextIdx=i; }
+  }
+  if(nextIdx===-1){ nextName=prayers[0]; const [h,m]=times[0].split(':').map(Number); nextMins=h*60+m+1440; }
+
+  const diff = (nextMins - nowMins) * 60;
+  const hrs = Math.floor(diff/3600);
+  const mins = Math.floor((diff%3600)/60);
+  const secs = Math.floor(diff%60);
+  const countdown = hrs>0 ? `${hrs}h ${mins}m ${secs}s` : `${mins}m ${secs}s`;
+
+  document.getElementById('next-prayer-label').textContent = `Next: ${nextName} in ${countdown}`;
+  document.getElementById('home-countdown').textContent = `in ${countdown}`;
+  document.getElementById('home-next-name').textContent = nextName;
+  if(nextIdx>=0 && times[nextIdx]) document.getElementById('home-next-time').textContent = formatTime(times[nextIdx]);
+}
+
+function toggleNotify(id, btn) {
+  notificationsEnabled[id] = !notificationsEnabled[id];
+  btn.classList.toggle('on', notificationsEnabled[id]);
+  showToast(notificationsEnabled[id] ? `${id} notification on 🔔` : `${id} notification off`);
+  if(notificationsEnabled[id] && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// QIBLA
+// ═══════════════════════════════════════════════════════════
+function calculateQibla(lat, lon) {
+  const meccaLat = 21.4225 * Math.PI/180;
+  const meccaLon = 39.8262 * Math.PI/180;
+  const userLatR = lat * Math.PI/180;
+  const userLonR = lon * Math.PI/180;
+  const dLon = meccaLon - userLonR;
+  const y = Math.sin(dLon) * Math.cos(meccaLat);
+  const x = Math.cos(userLatR)*Math.sin(meccaLat) - Math.sin(userLatR)*Math.cos(meccaLat)*Math.cos(dLon);
+  let bearing = Math.atan2(y,x) * 180/Math.PI;
+  bearing = (bearing + 360) % 360;
+  document.getElementById('qibla-needle').style.transform = `translateX(-50%) rotate(${bearing}deg)`;
+  document.getElementById('qibla-text').textContent = `Qibla is ${Math.round(bearing)}° from North`;
+
+  // Try deviceorientation for live compass
+  if(window.DeviceOrientationEvent) {
+    window.addEventListener('deviceorientation', e => {
+      if(e.alpha !== null) {
+        const compassHeading = 360 - e.alpha;
+        const qiblaFromDevice = bearing - compassHeading;
+        document.getElementById('qibla-needle').style.transform = `translateX(-50%) rotate(${qiblaFromDevice}deg)`;
+      }
+    });
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// QURAN
+// ═══════════════════════════════════════════════════════════
+function renderSurahList(surahs) {
+  let html = surahs.map(s => `
+    <div class="surah-item" onclick="openSurah(${s.n})">
+      <div class="surah-num">${s.n}</div>
+      <div class="surah-info">
+        <div class="surah-name-ar">${s.ar}</div>
+        <div class="surah-name-en">${s.en} — ${s.tr}</div>
+      </div>
+      <div class="surah-meta">
+        <span>${s.v} Ayahs</span>
+        <span style="color:var(--gold);font-size:10px;">${s.ty}</span>
+      </div>
+    </div>
+  `).join('');
+  document.getElementById('surah-list').innerHTML = html;
+}
+
+function filterSurahs(q) {
+  q = q.toLowerCase();
+  const filtered = SURAHS.filter(s => s.en.toLowerCase().includes(q) || s.tr.toLowerCase().includes(q) || String(s.n).includes(q) || s.ar.includes(q));
+  renderSurahList(filtered);
+}
+
+async function openSurah(n) {
+  currentSurah = SURAHS.find(s=>s.n===n);
+  if(!currentSurah) return;
+
+  // Show reader
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('reader-page').classList.add('active');
+  document.getElementById('reader-title').textContent = `${currentSurah.n}. ${currentSurah.en}`;
+  document.getElementById('reader-content').innerHTML = '<div class="loading-spinner"><div class="spinner"></div><div class="spinner-text">Loading Surah...</div></div>';
+
+  try {
+    // Fetch Arabic text
+    const arRes = await fetch(`https://api.alquran.cloud/v1/surah/${n}`);
+    const arData = await arRes.json();
+    // Fetch English translation
+    const enRes = await fetch(`https://api.alquran.cloud/v1/surah/${n}/en.sahih`);
+    const enData = await enRes.json();
+
+    const ayahs = arData.data.ayahs;
+    const enAyahs = enData.data?.ayahs || [];
+    const showTrans = getSetting('showTrans') !== 'false';
+    const fontSize = getSetting('fontSize') || 'normal';
+
+    let html = '';
+    // Bismillah (except for Surah 9)
+    if(n !== 9) html += `<div class="bismillah">بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ</div>`;
+
+    ayahs.forEach((ay, i) => {
+      const enText = enAyahs[i]?.text || '';
+      html += `<div class="ayah-block" id="ayah-${ay.numberInSurah}">
+        <div class="ayah-ar">${ay.text} <span class="ayah-num">${ay.numberInSurah}</span></div>
+        ${showTrans ? `<div class="ayah-en">${enText}</div>` : ''}
+      </div>`;
+    });
+
+    document.getElementById('reader-content').className = `reader-content fs-${fontSize}`;
+    document.getElementById('reader-content').innerHTML = html;
+  } catch(e) {
+    document.getElementById('reader-content').innerHTML = `<div style="padding:20px;text-align:center;color:var(--text2);">Failed to load. Check internet connection.<br><br><button onclick="openSurah(${n})" style="background:var(--gold);border:none;color:var(--navy);padding:10px 20px;border-radius:8px;cursor:pointer;">Retry</button></div>`;
+  }
+}
+
+function closeReader() {
+  document.getElementById('reader-page').classList.remove('active');
+  showPage(currentPage === 'reader' ? 'quran' : currentPage);
+}
+
+function toggleTranslation() {
+  showTranslation = !showTranslation;
+  const btn = document.getElementById('trans-toggle');
+  btn.textContent = showTranslation ? 'EN' : 'AR';
+  document.querySelectorAll('.ayah-en').forEach(el => {
+    el.style.display = showTranslation ? '' : 'none';
+  });
+}
+
+function changeFontSize() {
+  const sizes = ['normal','large','xlarge'];
+  const el = document.getElementById('reader-content');
+  let cur = getSetting('fontSize') || 'normal';
+  let idx = (sizes.indexOf(cur)+1) % sizes.length;
+  saveSetting('fontSize', sizes[idx]);
+  el.className = `reader-content fs-${sizes[idx]}`;
+  showToast(`Font: ${sizes[idx]}`);
+}
+
+// ═══════════════════════════════════════════════════════════
+// DHIKR
+// ═══════════════════════════════════════════════════════════
+function renderDhikrList() {
+  const html = DHIKR_LIST.map((d,i) => `
+    <div class="dhikr-item ${i===dhikrIndex?'selected':''}" onclick="selectDhikr(${i})">
+      <div class="dhikr-item-ar">${d.ar}</div>
+      <div class="dhikr-item-en">${d.en}</div>
+      <div class="dhikr-item-count">Repeat ${d.count}×</div>
+    </div>
+  `).join('');
+  document.getElementById('dhikr-list').innerHTML = html;
+  updateDhikrUI();
+}
+
+function selectDhikr(i) {
+  dhikrIndex = i;
+  dhikrCount = 0;
+  renderDhikrList();
+}
+
+function updateDhikrUI() {
+  const d = DHIKR_LIST[dhikrIndex];
+  document.getElementById('dhikr-ar').textContent = d.ar;
+  document.getElementById('dhikr-trans').textContent = d.en;
+  document.getElementById('dhikr-count').textContent = dhikrCount;
+  document.getElementById('dhikr-target-lbl').textContent = `/ ${d.count}`;
+  // Pulse animation when target reached
+  if(dhikrCount >= d.count) {
+    document.getElementById('dhikr-counter').style.background = 'radial-gradient(circle, rgba(201,168,76,0.3), rgba(10,22,40,0))';
+  } else {
+    document.getElementById('dhikr-counter').style.background = '';
+  }
+}
+
+function incrementDhikr() {
+  dhikrCount++;
+  const d = DHIKR_LIST[dhikrIndex];
+  document.getElementById('dhikr-count').textContent = dhikrCount;
+  if(dhikrCount >= d.count) {
+    showToast(`Masha'Allah! ${d.count}× completed ✨`);
+    updateDhikrUI();
+  }
+  // Haptic feedback
+  if(navigator.vibrate) navigator.vibrate(20);
+}
+
+function resetDhikr() {
+  dhikrCount = 0;
+  updateDhikrUI();
+}
+
+function nextDhikr() {
+  dhikrIndex = (dhikrIndex+1) % DHIKR_LIST.length;
+  dhikrCount = 0;
+  renderDhikrList();
+}
+
+// ═══════════════════════════════════════════════════════════
+// AYAH OF THE DAY
+// ═══════════════════════════════════════════════════════════
+function setAyahOfDay() {
+  const idx = new Date().getDate() % AYAHS_OF_DAY.length;
+  const a = AYAHS_OF_DAY[idx];
+  document.getElementById('ayah-day-ar').textContent = a.ar;
+  document.getElementById('ayah-day-en').textContent = a.en;
+  document.getElementById('ayah-day-src').textContent = a.src;
+}
+
+// ═══════════════════════════════════════════════════════════
+// AUDIO (Azan)
+// ═══════════════════════════════════════════════════════════
+function playAzan(name) {
+  // Use a public azan audio file
+  const azanUrls = {
+    'Fajr': 'https://www.islamicfinder.org/prayer-times/azan-mp3/Fajr.mp3',
+    'Default': 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'
+  };
+  const url = azanUrls[name] || azanUrls['Default'];
+  audioEl.src = url;
+  audioEl.play().catch(()=>{});
+  audioPlaying = true;
+  document.getElementById('ap-title').textContent = `Azan - ${name}`;
+  document.getElementById('ap-sub').textContent = 'Playing Azan...';
+  document.getElementById('ap-play-btn').textContent = '⏸';
+  document.getElementById('audio-player').classList.add('visible');
+}
+
+function toggleAudio() {
+  if(audioPlaying) {
+    audioEl.pause();
+    audioPlaying = false;
+    document.getElementById('ap-play-btn').textContent = '▶';
+  } else {
+    audioEl.play();
+    audioPlaying = true;
+    document.getElementById('ap-play-btn').textContent = '⏸';
+  }
+}
+
+function stopAudio() {
+  audioEl.pause();
+  audioEl.src = '';
+  audioPlaying = false;
+  document.getElementById('audio-player').classList.remove('visible');
+}
+
+audioEl.addEventListener('timeupdate', () => {
+  if(audioEl.duration) {
+    const pct = (audioEl.currentTime / audioEl.duration) * 100;
+    document.getElementById('ap-bar').style.width = pct+'%';
+  }
+});
+audioEl.addEventListener('ended', stopAudio);
+
+// ═══════════════════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════════════════
+function showPage(page) {
+  currentPage = page;
+  document.querySelectorAll('.page').forEach(p => {
+    p.classList.remove('active');
+    if(p.id === 'reader-page') p.classList.remove('active');
+  });
+  document.getElementById(`${page}-page`)?.classList.add('active');
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(`tab-${page}`)?.classList.add('active');
+}
+
+// ═══════════════════════════════════════════════════════════
+// SETTINGS
+// ═══════════════════════════════════════════════════════════
+function loadSettings() {
+  // Apply saved settings to toggles
+  ['notifications','format24','showTrans'].forEach(key => {
+    const val = getSetting(key);
+    const el = document.getElementById(`${key.replace(/([A-Z])/g, '-$1').toLowerCase()}-toggle`) || document.getElementById(`${key}-setting`);
+    if(el && val === 'true') el.classList.add('on');
+    if(el && val === 'false') el.classList.remove('on');
+  });
+  const method = getSetting('calcMethod');
+  if(method) document.getElementById('calc-method').value = method;
+}
+
+function toggleSetting(key, btn) {
+  const isOn = btn.classList.toggle('on');
+  saveSetting(key, isOn.toString());
+}
+
+function saveSetting(key, val) {
+  try { localStorage.setItem('quran_'+key, val); } catch(e){}
+}
+
+function getSetting(key) {
+  try { return localStorage.getItem('quran_'+key); } catch(e){ return null; }
+}
+
+// ═══════════════════════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════════════════════
+let toastTimer;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+// ═══════════════════════════════════════════════════════════
+// SERVICE WORKER (PWA)
+// ═══════════════════════════════════════════════════════════
+if('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+</script>
+</body>
+</html>
